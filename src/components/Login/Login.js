@@ -1,8 +1,10 @@
-import React, { useReducer, useState } from 'react';
+import React, { useContext, useReducer, useState } from 'react';
 
 import Card from '../UI/Card/Card';
 import classes from './Login.module.css';
 import Button from '../UI/Button/Button';
+import AuthContext from '../../context/auth-context';
+import Input from '../UI/Input/Input';
 
 const emailReducer = (state, action) => {
   if (action.type === 'USER_INPUT') {
@@ -14,15 +16,31 @@ const emailReducer = (state, action) => {
   }
   return { value: '', isValid: false }
 }
+const passReducer = (state, action) => {
+  if (action.type === 'PASS_INPUT') {
+    return { value: action.val, isValid: action.val.trim().length > 6 }
+  }
+  if (action.type === 'PASS_BLUR') {
+    return { value: state.value, isValid: state.value.trim().length > 6 }
+
+  }
+  return { value: '', isValid: false }
+}
 
 const Login = (props) => {
   //const [enteredEmail, setEnteredEmail] = useState('');
   //const [emailIsValid, setEmailIsValid] = useState();
-  const [enteredPassword, setEnteredPassword] = useState('');
-  const [passwordIsValid, setPasswordIsValid] = useState();
+  //const [enteredPassword, setEnteredPassword] = useState('');
+  //const [passwordIsValid, setPasswordIsValid] = useState();
   const [formIsValid, setFormIsValid] = useState(false);
 
   const [emailState, dispatchEmail] = useReducer(emailReducer, { value: '', isValid: null });
+  const [passState, dispatchPass] = useReducer(passReducer, { value: '', isValid: null });
+
+  const { isValid: emailIsValis } = emailState;
+  const { isValid: passIsValis } = passState;
+
+  const authCtx = useContext(AuthContext);
 
   //useEffect(() => {
   // const identifier = setTimeout(() => {
@@ -39,15 +57,16 @@ const Login = (props) => {
     dispatchEmail({ type: 'USER_INPUT', val: event.target.value })
 
     setFormIsValid(
-      enteredPassword.trim().length > 6 && event.target.value.includes('@')
+      passIsValis && emailIsValis
     );
 
   };
 
   const passwordChangeHandler = (event) => {
-    setEnteredPassword(event.target.value);
+    dispatchPass({ type: 'PASS_INPUT', val: event.target.value })
+
     setFormIsValid(
-      event.target.value.trim().length > 6 && emailState.isValid
+      passIsValis && emailIsValis
     );
 
   };
@@ -57,45 +76,29 @@ const Login = (props) => {
   };
 
   const validatePasswordHandler = () => {
-    setPasswordIsValid(enteredPassword.trim().length > 6);
+    dispatchPass({ type: 'PASS_BLUR' })
   };
 
   const submitHandler = (event) => {
     event.preventDefault();
-    props.onLogin(emailState.value, enteredPassword);
+    if (formIsValid) {
+      authCtx.onLogin(emailState.value, passState.value);
+    } else if (!emailIsValis) {
+
+    } else {
+
+    }
+
   };
 
   return (
     <Card className={classes.login}>
       <form onSubmit={submitHandler}>
-        <div
-          className={`${classes.control} ${emailState.isValid === false ? classes.invalid : ''
-            }`}
-        >
-          <label htmlFor="email">E-Mail</label>
-          <input
-            type="email"
-            id="email"
-            value={emailState.value}
-            onChange={emailChangeHandler}
-            onBlur={validateEmailHandler}
-          />
-        </div>
-        <div
-          className={`${classes.control} ${passwordIsValid === false ? classes.invalid : ''
-            }`}
-        >
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={enteredPassword}
-            onChange={passwordChangeHandler}
-            onBlur={validatePasswordHandler}
-          />
-        </div>
+        <Input id="email" label="E-Mail" type="email" isValid={emailIsValis} value={emailState.value} onChange={emailChangeHandler} onBlur={validateEmailHandler} />
+        <Input id="password" label="Password" type="password" isValid={passIsValis} value={passState.value} onChange={passwordChangeHandler} onBlur={validatePasswordHandler} />
+
         <div className={classes.actions}>
-          <Button type="submit" className={classes.btn} disabled={!formIsValid}>
+          <Button type="submit" className={classes.btn}>
             Login
           </Button>
         </div>
